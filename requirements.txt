@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pydantic
+tensorflow
+pymoo
+numpy
+pandas
+python-docx
+requests
+scikit-learn

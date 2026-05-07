@@ -1,0 +1,85 @@
+PROJECT STRUCTURE & CODE DOCUMENTATION
+
+This file provides a comprehensive overview of the file structure and the 
+responsibilities of each module within the Stiffened Plate Optimization project.
+
+1. ROOT DIRECTORY (Core Files & Data)
+- README.md
+  The main entry point for developers and users. Contains the project overview, 
+  theoretical background of the Physics-Informed Neural Network (PINN), 
+  system architecture diagrams, and installation instructions.
+
+- documentation.txt
+  This current file, detailing the repository layout.
+
+- requirements.txt
+  A clean list of all Python pip dependencies required to run the backend 
+  FastAPI server and the optimization loop.
+
+- pinn_plate_model.keras
+  The compiled, trained TensorFlow/Keras neural network. This acts as the 
+  mathematical surrogate model that replaces traditional FEA software.
+
+- x_mean.npy / x_std.npy
+  Numpy arrays containing the mean and standard deviation scaling factors. 
+  The backend uses these to normalize user input geometry before passing it 
+  into the neural network to ensure stable predictions.
+
+- augmented_training_data.csv
+  A backup of the expanded training dataset (useful for reference or external 
+  analysis). Not directly read by the live backend.
+
+2. BACKEND SCRIPTS (Python & AI)
+- main.py
+  Purpose: The FastAPI web server entry point.
+  Details: Handles incoming HTTP POST requests from the React frontend. It 
+  validates that the user's input parameters (length, breadth, load, etc.) 
+  are positive and correct, and then passes them to `optimizer.py`.
+
+- optimizer.py
+  Purpose: The core Evolutionary Algorithm (NSGA-II) logic.
+  Details: 
+    * `StiffenedPlateProblem`: Defines the physical constraints (e.g., stiffener 
+      volume must not exceed the total allowed plate mass).
+    * `_evaluate`: Evaluates hundreds of candidate designs per generation by 
+      calling the PINN to predict deflection and stress.
+    * `run_optimization`: Orchestrates the genetic algorithm, extracts the Pareto 
+      front, categorizes the best designs (safest, lightest, etc.), and returns 
+      a JSON payload.
+    * `build_physics_heatmaps`: Generates a rough 2D matrix of stress/deflection 
+      to be plotted as 3D terrain by the frontend.
+
+- predictor.py
+  Purpose: The Neural Network interface.
+  Details: Loads `pinn_plate_model.keras` into memory. Contains `predict_batch` 
+  to efficiently evaluate large populations of designs simultaneously for the 
+  genetic algorithm, drastically speeding up optimization.
+
+- train_pinn.py
+  Purpose: Model Training Script.
+  Details: You run this script only when you want to retrain the neural network 
+  from scratch. It loads base FEA configurations, scales them, trains a Deep 
+  MLP architecture using Keras, and saves the resulting `.keras` and `.npy` files.
+
+- fea_data.py
+  Purpose: Static Data Storage.
+  Details: Holds the raw mathematical arrays (`RAW_FEA`) and baseline parameters 
+  used strictly by `train_pinn.py`. Separated to keep the training script clean.
+
+3. FRONTEND DIRECTORY (React Web App)
+- frontend/
+  Purpose: The interactive user interface.
+  Details: Built using React, Vite, and Three.js. 
+    * Captures user input (dimensions, boundary conditions).
+    * Sends payloads to the FastAPI backend.
+    * Uses `@react-three/fiber` to dynamically render the resulting optimized 
+      stiffened plate in full 3D WebGL.
+    * Allows the user to EXPORT the optimal 3D geometry as an STL file for CAD 
+      or ANSYS validation.
+    * Plots Pareto fronts and performance graphs using Recharts.
+
+4. IMAGES DIRECTORY
+- images/
+  Purpose: Documentation Assets.
+  Details: Contains static `.png` diagrams (like system workflows and PINN 
+  architecture) referenced by the `README.md`.
